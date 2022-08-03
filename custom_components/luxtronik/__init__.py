@@ -19,7 +19,10 @@ from .const import (
     DOMAIN,
     LANG_DEFAULT,
     LOGGER,
-    LUX_SENSOR_DETECT_COOLING,
+    LUX_SENSOR_DETECT_COOLING1,
+    LUX_SENSOR_DETECT_COOLING2,
+    LUX_SENSOR_DETECT_COOLING3,
+    LUX_SENSOR_MK_TYPES_COOLING,
     PLATFORMS,
     SERVICE_WRITE,
     SERVICE_WRITE_SCHEMA,
@@ -144,7 +147,7 @@ def setup_internal(hass, data, conf):
             default_name=text_cooling,
             name=text_cooling,
         )
-        if luxtronik.get_value(LUX_SENSOR_DETECT_COOLING)
+        if luxtronik.get_value(LUX_SENSOR_DETECT_COOLING1) in LUX_SENSOR_MK_TYPES_COOLING or luxtronik.get_value(LUX_SENSOR_DETECT_COOLING3) in LUX_SENSOR_MK_TYPES_COOLING or luxtronik.get_value(LUX_SENSOR_DETECT_COOLING3) in LUX_SENSOR_MK_TYPES_COOLING
         else None
     )
     return True

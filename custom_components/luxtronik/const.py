@@ -189,7 +189,17 @@ ICON_OFF = "mdi:circle-outline"
 
 
 # region Luxtronik Sensor ids
-LUX_SENSOR_DETECT_COOLING: Final = "calculations.ID_WEB_FreigabKuehl"
+LUX_SENSOR_DETECT_COOLING1: Final = "parameter.ID_Einst_MK1Typ_akt"
+LUX_SENSOR_DETECT_COOLING2: Final = "parameter.ID_Einst_MK2Typ_akt"
+LUX_SENSOR_DETECT_COOLING3: Final = "parameter.ID_Einst_MK3Typ_akt"
+class LUX_SENSOR_MK_TYPE(Enum):
+    off: Final = 0
+    discharge: Final = 1
+    load: Final = 2
+    cooling: Final = 3
+    heating_cooling: Final = 4
+LUX_SENSOR_MK_TYPES_COOLING: list[str] = [LUX_SENSOR_MK_TYPE.cooling, LUX_SENSOR_MK_TYPE.heating_cooling]
+
 LUX_SENSOR_STATUS: Final = "calculations.ID_WEB_WP_BZ_akt"
 LUX_SENSOR_STATUS1: Final = "calculations.ID_WEB_HauptMenuStatus_Zeile1"
 LUX_SENSOR_STATUS3: Final = "calculations.ID_WEB_HauptMenuStatus_Zeile3"
