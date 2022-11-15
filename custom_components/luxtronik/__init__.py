@@ -37,11 +37,11 @@ LuxLogger.setLevel(level="WARNING")
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up from config entry."""
-    hass.data.setdefault(DOMAIN, {})
+    hass.data.setdefault(DOMAIN + '_' + config_entry.data[CONF_HOST], {})
 
     LOGGER.info(
         "%s.async_setup_entry options: '%s' data:'%s'",
-        DOMAIN,
+         + '_' + config_entry.data[CONF_HOST],
         config_entry.options,
         config_entry.data,
     )
@@ -49,7 +49,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     setup_internal(hass, config_entry.data, config_entry.options)
 
-    luxtronik = hass.data[DOMAIN]
+    luxtronik = hass.data[ + '_' + config_entry.data[CONF_HOST]]
 
     hass.config_entries.async_setup_platforms(config_entry, PLATFORMS)
 
