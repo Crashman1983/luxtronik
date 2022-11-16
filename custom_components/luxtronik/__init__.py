@@ -37,19 +37,19 @@ LuxLogger.setLevel(level="WARNING")
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up from config entry."""
-    hass.data.setdefault(DOMAIN + '_' + config_entry.data[CONF_HOST], {})
+    hass.data.setdefault(DOMAIN + '_' + config_entry.title, {})
 
     LOGGER.info(
         "%s.async_setup_entry options: '%s' data:'%s'",
-         + '_' + config_entry.data[CONF_HOST],
+        DOMAIN + '_' + config_entry.title,
         config_entry.options,
         config_entry.data,
     )
     config_entry.async_on_unload(config_entry.add_update_listener(async_reload_entry))
 
-    setup_internal(hass, config_entry.data, config_entry.options)
+    setup_internal(hass, config_entry.title, config_entry.data, config_entry.options)
 
-    luxtronik = hass.data[ + '_' + config_entry.data[CONF_HOST]]
+    luxtronik = hass.data[DOMAIN + '_' + config_entry.title]
 
     hass.config_entries.async_setup_platforms(config_entry, PLATFORMS)
 
@@ -93,10 +93,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         # Setup via UI. No need to continue yaml-based setup
         return True
     conf = config[DOMAIN]
-    return setup_internal(hass, conf, conf)
+    return setup_internal(hass, "", conf, conf)
 
 
-def setup_internal(hass, data, conf):
+def setup_internal(hass, title, data, conf):
     """Set up the Luxtronik component."""
     host = data[CONF_HOST]
     port = data[CONF_PORT]
@@ -121,26 +121,26 @@ def setup_internal(hass, data, conf):
     luxtronik = LuxtronikDevice(host, port, safe, lock_timeout)
     luxtronik.read()
 
-    hass.data[DOMAIN] = luxtronik
-    hass.data[f"{DOMAIN}_conf"] = conf
+    hass.data[f"{DOMAIN}_{title}"] = luxtronik
+    hass.data[f"{DOMAIN}_{title}_conf"] = conf
     # Create DeviceInfos:
     serial_number = luxtronik.get_value("parameters.ID_WP_SerienNummer_DATUM")
-    hass.data[f"{DOMAIN}_DeviceInfo"] = build_device_info(
-        luxtronik, serial_number, text_heatpump
+    hass.data[f"{DOMAIN}_{title}_DeviceInfo"] = build_device_info(
+        luxtronik, title, serial_number, text_heatpump
     )
-    hass.data[f"{DOMAIN}_DeviceInfo_Domestic_Water"] = DeviceInfo(
-        identifiers={(DOMAIN, "Domestic_Water", serial_number)},
+    hass.data[f"{DOMAIN}_{title}_DeviceInfo_Domestic_Water"] = DeviceInfo(
+        identifiers={(DOMAIN, title, "Domestic_Water", serial_number)},
         default_name=text_domestic_water,
         name=text_domestic_water,
     )
-    hass.data[f"{DOMAIN}_DeviceInfo_Heating"] = DeviceInfo(
-        identifiers={(DOMAIN, "Heating", serial_number)},
+    hass.data[f"{DOMAIN}_{title}_DeviceInfo_Heating"] = DeviceInfo(
+        identifiers={(DOMAIN, title, "Heating", serial_number)},
         default_name=text_heating,
         name=text_heating,
     )
-    hass.data[f"{DOMAIN}_DeviceInfo_Cooling"] = (
+    hass.data[f"{DOMAIN}_{title}_DeviceInfo_Cooling"] = (
         DeviceInfo(
-            identifiers={(DOMAIN, "Cooling", serial_number)},
+            identifiers={(DOMAIN, title, "Cooling", serial_number)},
             default_name=text_cooling,
             name=text_cooling,
         )
@@ -181,12 +181,13 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     return unload_ok
 
 
-def build_device_info(luxtronik: LuxtronikDevice, sn: str, name: str) -> DeviceInfo:
+def build_device_info(luxtronik: LuxtronikDevice, title: str, sn: str, name: str) -> DeviceInfo:
     """Build luxtronik device info."""
     model = luxtronik.get_value("calculations.ID_WEB_Code_WP_akt")
     device_info = DeviceInfo(
+        configuration_url="https://www.heatpump24.com",
         identifiers={(DOMAIN, "Heatpump", sn)},  # type: ignore
-        name=f"{name} S/N {sn}",
+        name=f"{name} {title} S/N {sn}",
         default_name=name,
         default_manufacturer="Alpha Innotec",
         manufacturer=get_manufacturer_by_model(model),

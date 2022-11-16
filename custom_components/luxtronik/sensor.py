@@ -1,17 +1,16 @@
 """Luxtronik heatpump sensor."""
 # region Imports
-from typing import Any, Final
 
 from homeassistant.components.sensor import (
     ENTITY_ID_FORMAT,
     STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
     SensorEntity,
-    SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_FRIENDLY_NAME,
+    CONF_HOST,
     CONF_ICON,
     CONF_ID,
     CONF_SENSORS,
@@ -31,15 +30,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .const import (
+from custom_components.luxtronik.const import (
     ATTR_STATUS_TEXT,
     CONF_GROUP,
     CONF_LANGUAGE_SENSOR_NAMES,
     DEFAULT_DEVICE_CLASS,
     DEVICE_CLASSES,
     DOMAIN,
-    GLOBAL_SENSOR_TYPES,
-    GLOBAL_STATUS_SENSOR_TYPES,
     ICONS,
     LOGGER,
     LUX_SENSOR_STATUS,
@@ -52,13 +49,12 @@ from .const import (
     LUX_STATUS_HEATING,
     LUX_STATUS_NO_REQUEST,
     LUX_STATUS_THERMAL_DESINFECTION,
-    PLATFORMS,
     SECOUND_TO_HOUR_FACTOR,
     UNITS,
 )
-from .helpers.helper import get_sensor_text, get_sensor_value_text
-from .luxtronik_device import LuxtronikDevice
-from .model import LuxtronikStatusExtraAttributes
+from custom_components.luxtronik.helpers.helper import get_sensor_text, get_sensor_value_text
+from custom_components.luxtronik.luxtronik_device import LuxtronikDevice
+from custom_components.luxtronik.model import LuxtronikStatusExtraAttributes
 
 # endregion Imports
 
@@ -76,7 +72,8 @@ async def async_setup_platform(
 ) -> None:
     """Set up a Luxtronik sensor from yaml config."""
     LOGGER.info(
-        f"{DOMAIN}.sensor.async_setup_platform ConfigType: %s - discovery_info: %s",
+        f"{DOMAIN}.sensor.async_setup_platform hass: %s - ConfigType: %s - discovery_info: %s",
+        hass
         config,
         discovery_info,
     )
@@ -148,16 +145,17 @@ async def async_setup_entry(
 ) -> None:
     """Set up a Luxtronik sensor from ConfigEntry."""
     LOGGER.info(f"{DOMAIN}.sensor.async_setup_entry ConfigType: %s", config_entry)
-    luxtronik: LuxtronikDevice = hass.data.get(DOMAIN)
+    luxtronik: LuxtronikDevice = hass.data.get(DOMAIN + '_' config_entry.title)
     if not luxtronik:
         LOGGER.warning("%s.sensor.async_setup_entry no luxtronik!", DOMAIN)
         return False
 
-    device_info = hass.data[f"{DOMAIN}_DeviceInfo"]
+    sensor_prefix = DOMAIN if config_entry.data.get(CONF_HOST) == config_entry.title else config_entry.title
+    device_info = hass.data[f"{DOMAIN}_{config_entry.title}_DeviceInfo"]
 
     # Build Sensor names with local language:
     lang = config_entry.options.get(CONF_LANGUAGE_SENSOR_NAMES)
-    hass.data[f"{DOMAIN}_language"] = lang
+    hass.data[f"{DOMAIN}_{config_entry.title}_language"] = lang
     text_time = get_sensor_text(lang, "time")
     text_temp = get_sensor_text(lang, "temperature")
     text_external = get_sensor_text(lang, "external")
@@ -190,6 +188,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             LUX_SENSOR_STATUS,
             "status",
             "Status",
@@ -203,6 +202,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_HauptMenuStatus_Zeit",
             "status_time",
             f"Status {text_time}",
@@ -216,6 +216,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_HauptMenuStatus_Zeile1",
             "status_line_1",
             "Status 1",
@@ -229,6 +230,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_HauptMenuStatus_Zeile2",
             "status_line_2",
             "Status 2",
@@ -242,6 +244,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_HauptMenuStatus_Zeile3",
             "status_line_3",
             "Status 3",
@@ -255,6 +258,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_Temperatur_TWA",
             "heat_source_output_temperature",
             f"{text_heat_source_output} {text_temp}",
@@ -264,6 +268,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_Temperatur_TWE",
             "heat_source_input_temperature",
             f"{text_heat_source_input} {text_temp}",
@@ -273,6 +278,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_Temperatur_TA",
             "outdoor_temperature",
             f"{text_outdoor} {text_temp}",
@@ -282,6 +288,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_Mitteltemperatur",
             "outdoor_temperature_average",
             f"{text_average} {text_outdoor} {text_temp}",
@@ -291,6 +298,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             sensor_key="calculations.ID_WEB_Zaehler_BetrZeitImpVD1",
             unique_id="compressor_impulses",
             name=f"{text_compressor_impulses}",
@@ -304,6 +312,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             sensor_key="calculations.ID_WEB_Zaehler_BetrZeitWP",
             unique_id="operation_hours",
             name=f"{text_operation_hours}",
@@ -318,6 +327,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             sensor_key="calculations.ID_WEB_WMZ_Seit",
             unique_id="heat_amount_counter",
             name=f"{text_heat_amount_counter}",
@@ -331,6 +341,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_Freq_VD",
             "pump frequency",
             f"{text_pump} Frequency",
@@ -342,6 +353,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_Temperatur_THG",
             "hot_gas_temperature",
             f"{text_hot_gas} {text_temp}",
@@ -351,6 +363,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_LIN_ANSAUG_VERDICHTER",
             "suction_compressor_temperature",
             f"{text_suction_compressor} {text_temp}",
@@ -360,6 +373,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_LIN_ANSAUG_VERDAMPFER",
             "suction_evaporator_temperature",
             f"{text_suction_evaporator} {text_temp}",
@@ -369,6 +383,7 @@ async def async_setup_entry(
             hass,
             luxtronik,
             device_info,
+            sensor_prefix,
             "calculations.ID_WEB_LIN_VDH",
             "compressor_heating_temperature",
             f"{text_compressor_heating} {text_temp}",
@@ -376,7 +391,7 @@ async def async_setup_entry(
         ),
     ]
 
-    device_info_heating = hass.data[f"{DOMAIN}_DeviceInfo_Heating"]
+    device_info_heating = hass.data[f"{DOMAIN}_{config_entry.title}_DeviceInfo_Heating"]
     if device_info_heating is not None:
         text_flow_in = get_sensor_text(lang, "flow_in")
         text_flow_out = get_sensor_text(lang, "flow_out")
@@ -389,6 +404,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 "calculations.ID_WEB_RBE_RT_Ist",
                 "room_temperature",
                 f"{text_room} {text_temp}",
@@ -398,6 +414,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 "calculations.ID_WEB_Temperatur_TVL",
                 "flow_in_temperature",
                 f"{text_flow_in} {text_temp}",
@@ -408,6 +425,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 "calculations.ID_WEB_Temperatur_TRL",
                 "flow_out_temperature",
                 f"{text_flow_out} {text_temp}",
@@ -418,6 +436,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 "calculations.ID_WEB_Temperatur_TRL_ext",
                 "flow_out_temperature_external",
                 f"{text_flow_out} {text_temp} ({text_external})",
@@ -428,6 +447,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 "calculations.ID_WEB_Sollwert_TRL_HZ",
                 "flow_out_temperature_target",
                 f"{text_flow_out} {text_temp} {text_target}",
@@ -437,6 +457,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 sensor_key="calculations.ID_WEB_Zaehler_BetrZeitHz",
                 unique_id="operation_hours_heating",
                 name=f"{text_operation_hours_heating}",
@@ -451,6 +472,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_heating,
+                sensor_prefix,
                 sensor_key="calculations.ID_WEB_WMZ_Heizung",
                 unique_id="heat_amount_heating",
                 name=f"{text_heat_amount_heating}",
@@ -462,7 +484,7 @@ async def async_setup_entry(
             ),
         ]
 
-    device_info_domestic_water = hass.data[f"{DOMAIN}_DeviceInfo_Domestic_Water"]
+    device_info_domestic_water = hass.data[f"{DOMAIN}_{config_entry.title}_DeviceInfo_Domestic_Water"]
     if device_info_domestic_water is not None:
         text_collector = get_sensor_text(lang, "collector")
         text_buffer = get_sensor_text(lang, "buffer")
@@ -479,6 +501,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_domestic_water,
+                sensor_prefix,
                 "calculations.ID_WEB_Temperatur_TSK",
                 "solar_collector_temperature",
                 f"Solar {text_collector} {text_temp}",
@@ -489,6 +512,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_domestic_water,
+                sensor_prefix,
                 "calculations.ID_WEB_Temperatur_TSS",
                 "solar_buffer_temperature",
                 f"Solar {text_buffer} {text_temp}",
@@ -499,6 +523,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_domestic_water,
+                sensor_prefix,
                 "calculations.ID_WEB_Temperatur_TBW",
                 "domestic_water_temperature",
                 f"{text_domestic_water} {text_temp}",
@@ -509,6 +534,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_domestic_water,
+                sensor_prefix,
                 sensor_key="calculations.ID_WEB_Zaehler_BetrZeitBW",
                 unique_id="operation_hours_domestic_water",
                 name=f"{text_operation_hours_domestic_water}",
@@ -523,6 +549,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_domestic_water,
+                sensor_prefix,
                 sensor_key="parameters.ID_BSTD_Solar",
                 unique_id="operation_hours_solar",
                 name=f"{text_operation_hours_solar}",
@@ -537,6 +564,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 device_info_domestic_water,
+                sensor_prefix,
                 sensor_key="calculations.ID_WEB_WMZ_Brauchwasser",
                 unique_id="heat_amount_domestic_water",
                 name=f"{text_heat_amount_domestic_water}",
@@ -548,7 +576,7 @@ async def async_setup_entry(
             ),
         ]
 
-    deviceInfoCooling = hass.data[f"{DOMAIN}_DeviceInfo_Cooling"]
+    deviceInfoCooling = hass.data[f"{DOMAIN}_{config_entry.title}_DeviceInfo_Cooling"]
     if deviceInfoCooling is not None:
         text_operation_hours_cooling = get_sensor_text(lang, "operation_hours_cooling")
         entities += [
@@ -556,6 +584,7 @@ async def async_setup_entry(
                 hass,
                 luxtronik,
                 deviceInfoCooling,
+                sensor_prefix,
                 sensor_key="calculations.ID_WEB_Zaehler_BetrZeitKue",
                 unique_id="operation_hours_cooling",
                 name=f"{text_operation_hours_cooling}",
@@ -602,6 +631,7 @@ class LuxtronikSensor(SensorEntity, RestoreEntity):
         hass: HomeAssistant,
         luxtronik: LuxtronikDevice,
         deviceInfo: DeviceInfo,
+        sensor_prefix: str,
         sensor_key: str,
         unique_id: str,
         name: str,
@@ -616,7 +646,7 @@ class LuxtronikSensor(SensorEntity, RestoreEntity):
         self.hass = hass
         self._luxtronik = luxtronik
 
-        self.entity_id = ENTITY_ID_FORMAT.format(f"{DOMAIN}_{unique_id}")
+        self.entity_id = ENTITY_ID_FORMAT.format(f"{sensor_prefix}_{unique_id}")
         self._attr_unique_id = self.entity_id
         self._attr_device_class = device_class
         self._attr_name = name

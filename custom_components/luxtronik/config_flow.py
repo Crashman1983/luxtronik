@@ -6,26 +6,16 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.components.dhcp import HOSTNAME  # , DhcpServiceInfo
-from homeassistant.components.dhcp import IP_ADDRESS
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import (
-    CONF_CONTROL_MODE_HOME_ASSISTANT,
-    CONF_HA_SENSOR_INDOOR_TEMPERATURE,
-    CONF_LANGUAGE_SENSOR_NAMES,
-    CONF_LOCK_TIMEOUT,
-    CONF_SAFE,
-    CONF_UPDATE_IMMEDIATELY_AFTER_WRITE,
-    DEFAULT_PORT,
-    DOMAIN,
-    LANG_DEFAULT,
-    LANGUAGES_SENSOR_NAMES,
-    LOGGER,
-)
-from .helpers.lux_helper import discover
+from custom_components.luxtronik.const import (
+    CONF_CONTROL_MODE_HOME_ASSISTANT, CONF_HA_SENSOR_INDOOR_TEMPERATURE,
+    CONF_LANGUAGE_SENSOR_NAMES, CONF_LOCK_TIMEOUT, CONF_SAFE,
+    CONF_UPDATE_IMMEDIATELY_AFTER_WRITE, DEFAULT_PORT, DOMAIN, LANG_DEFAULT,
+    LANGUAGES_SENSOR_NAMES, LOGGER)
+from custom_components.luxtronik.helpers.lux_helper import discover
 
 # endregion Imports
 
@@ -39,13 +29,16 @@ class LuxtronikFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     _discovery_port = None
     _discovery_schema = None
 
+    _sensor_prefix = DOMAIN
+
     def _get_schema(self):
+        self._sensor_prefix = self.domain
         return vol.Schema(
             {
                 vol.Required(CONF_HOST, default=self._discovery_host): str,
                 vol.Required(CONF_PORT, default=self._discovery_port): int,
                 vol.Optional(CONF_CONTROL_MODE_HOME_ASSISTANT, default=False): bool,
-                vol.Optional(CONF_HA_SENSOR_INDOOR_TEMPERATURE, default=""): str,
+                vol.Optional(CONF_HA_SENSOR_INDOOR_TEMPERATURE, default=f"sensor.{self._sensor_prefix}_room_temperature"): str,
                 vol.Optional(CONF_LANGUAGE_SENSOR_NAMES, default=LANG_DEFAULT): vol.In(
                     LANGUAGES_SENSOR_NAMES
                 ),
@@ -64,7 +57,7 @@ class LuxtronikFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         broadcast_discover_ip, broadcast_discover_port = discover()
         if broadcast_discover_ip != discovery_info.ip:
             return None
-        await self.async_set_unique_id(discovery_info.hostname)
+        await self.async_set_unique_id(f"{DOMAIN}_{discovery_info.ip}")
         self._abort_if_unique_id_configured()
 
         self._discovery_host = discovery_info.ip
@@ -119,6 +112,8 @@ class LuxtronikFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 class LuxtronikOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a Luxtronik options flow."""
 
+    _sensor_prefix = DOMAIN
+
     def __init__(self, config_entry):
         """Initialize."""
         self.config_entry = config_entry
@@ -138,7 +133,7 @@ class LuxtronikOptionsFlowHandler(config_entries.OptionsFlow):
                 ): bool,
                 vol.Optional(
                     CONF_HA_SENSOR_INDOOR_TEMPERATURE,
-                    default=self._get_value(CONF_HA_SENSOR_INDOOR_TEMPERATURE, ""),
+                    default=self._get_value(CONF_HA_SENSOR_INDOOR_TEMPERATURE, f"sensor.{self._sensor_prefix}_room_temperature"),
                 ): str,
                 vol.Optional(
                     CONF_LANGUAGE_SENSOR_NAMES,
